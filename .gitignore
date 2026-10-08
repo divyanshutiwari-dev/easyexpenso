@@ -1,0 +1,7 @@
+node_modules/
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/easyexpenso.db
+.DS_Store
+*.log

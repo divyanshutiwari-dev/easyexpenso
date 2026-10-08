@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5"/>
+<title>EasyExpenso</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#08090f;--bg2:#0d0f1a;--surface:#121520;--card:#181c2e;--card2:#1e2336;--border:#252a40;--border2:#2e3550;--accent:#7c6dfa;--accent-glow:rgba(124,109,250,.28);--accent2:#f06292;--green:#00e5a0;--green-dim:#00b37e;--yellow:#ffc947;--blue:#42a5f5;--red:#ff5c72;--text:#eef0f8;--text2:#9ba3c2;--text3:#5a6280;--radius:18px;--radius-sm:12px;--tab-h:68px;--font:'Inter',sans-serif;--font-display:'Space Grotesk',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font);max-width:430px;margin:0 auto;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.screen{display:none;flex-direction:column;height:calc(100vh - var(--tab-h));overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.screen.active{display:flex}.scroll-pad{padding-bottom:20px}
+.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:var(--tab-h);background:rgba(13,15,26,.92);backdrop-filter:blur(24px);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom,0)}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;background:none;border:none;color:var(--text3);font-family:var(--font);font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;transition:color .2s;position:relative}
+.tab-btn svg{width:22px;height:22px;transition:transform .2s}.tab-btn.active{color:var(--accent)}.tab-btn.active svg{transform:scale(1.1);filter:drop-shadow(0 0 8px var(--accent))}
+.tab-indicator{position:absolute;top:0;left:50%;transform:translateX(-50%);width:36px;height:2.5px;border-radius:2px;background:var(--accent);opacity:0;transition:opacity .2s}.tab-btn.active .tab-indicator{opacity:1}
+#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--card2);border:1px solid var(--border2);border-radius:14px;padding:12px 20px;font-size:13px;font-weight:600;color:var(--text);z-index:1000;transition:transform .3s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;gap:8px;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:300;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}.modal-box{background:var(--surface);border-radius:24px 24px 0 0;border:1px solid var(--border2);width:100%;max-width:430px;padding:24px 20px 36px;max-height:85vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;background:var(--border2);border-radius:4px;margin:0 auto 20px}.modal-title{font-family:var(--font-display);font-size:20px;font-weight:800;margin-bottom:16px}
+.page-hdr{padding:20px 20px 8px;display:flex;align-items:flex-start;justify-content:space-between}
+.page-title{font-family:var(--font-display);font-size:26px;font-weight:800;letter-spacing:-.5px}.page-title span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.page-sub{font-size:12px;color:var(--text2);margin-top:3px}.icon-btn{width:38px;height:38px;border-radius:12px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}.icon-btn svg{width:18px;height:18px;color:var(--text2)}
+.stat-row{display:flex;gap:10px;padding:0 16px 12px}.stat-card{flex:1;background:var(--card);border-radius:var(--radius-sm);padding:14px 14px 12px;border:1px solid var(--border);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:-30px;right:-20px;width:70px;height:70px;border-radius:50%;opacity:.08}.stat-card.green::before{background:var(--green)}.stat-card.yellow::before{background:var(--yellow)}.stat-card.accent::before{background:var(--accent)}.stat-card.blue::before{background:var(--blue)}
+.stat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;font-weight:600}.stat-val{font-family:var(--font-display);font-size:22px;font-weight:800;line-height:1}.stat-val.green{color:var(--green)}.stat-val.yellow{color:var(--yellow)}.stat-val.accent{color:var(--accent)}.stat-val.blue{color:var(--blue)}.stat-delta{font-size:10px;color:var(--text3);margin-top:4px}
+.section-lbl{padding:0 16px 8px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;display:flex;align-items:center;justify-content:space-between}.section-lbl span{color:var(--accent);font-size:12px;cursor:pointer}
+.inp-group{display:flex;flex-direction:column;gap:5px;flex:1}.inp-group label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;font-weight:600}
+input,select,textarea{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:15px;padding:11px 13px;width:100%;outline:none;transition:border .2s,box-shadow .2s;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}select option{background:var(--card)}textarea{resize:none;min-height:80px;line-height:1.5}
+.inp-row{display:flex;gap:8px;padding:0 16px 10px}.inp-solo{padding:0 16px 10px}
+.btn{border:none;border-radius:var(--radius-sm);padding:13px 18px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}.btn:active{opacity:.8;transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#9c27b0);color:#fff;box-shadow:0 4px 20px var(--accent-glow)}.btn-green{background:linear-gradient(135deg,var(--green-dim),#00897b);color:#fff}.btn-red{background:linear-gradient(135deg,var(--red),#c62828);color:#fff}.btn-ghost{background:var(--card);color:var(--text2);border:1px solid var(--border)}.btn-full{width:calc(100% - 32px);margin:0 16px 10px}
+.list-item{background:var(--card);border-radius:var(--radius-sm);padding:13px 14px;margin:0 16px 8px;display:flex;align-items:center;gap:12px;border:1px solid var(--border);transition:border-color .15s;position:relative;overflow:hidden}.list-item:active{border-color:var(--border2)}
+.item-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}.item-body{flex:1;min-width:0}.item-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.item-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.item-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}.item-amount{font-family:var(--font-display);font-size:16px;font-weight:800}.item-badge{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.del-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;font-size:14px;transition:color .15s;flex-shrink:0}.del-btn:hover{color:var(--red)}
+.empty-state{text-align:center;color:var(--text3);padding:40px 20px;font-size:14px}.empty-state .emoji{font-size:36px;margin-bottom:10px}.empty-state p{line-height:1.5}
+.chip-row{display:flex;gap:8px;padding:0 16px 10px;overflow-x:auto;scrollbar-width:none}.chip-row::-webkit-scrollbar{display:none}
+.chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text2);white-space:nowrap;transition:all .15s;flex-shrink:0}.chip.selected{background:var(--accent);border-color:var(--accent);color:#fff}
+#home{background:var(--bg)}.home-top{padding:24px 20px 0;display:flex;align-items:center;justify-content:space-between}
+.greeting{font-size:14px;color:var(--text2)}.greeting strong{color:var(--text);font-size:20px;display:block;font-family:var(--font-display);font-weight:800;margin-top:2px}
+.notif-btn{width:40px;height:40px;background:var(--card);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}.notif-dot{position:absolute;top:8px;right:8px;width:7px;height:7px;background:var(--accent2);border-radius:50%;border:2px solid var(--bg)}
+.hero-card{margin:16px;border-radius:22px;background:linear-gradient(135deg,#1a1550,#2d1b5e,#1a1550);padding:22px;border:1px solid rgba(124,109,250,.25);position:relative;overflow:hidden}.hero-card::before{content:'';position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(124,109,250,.2),transparent 70%)}
+.hero-label{font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:8px}.hero-amount{font-family:var(--font-display);font-size:38px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1}.hero-sub{font-size:12px;color:rgba(255,255,255,.45);margin-top:6px}
+.hero-row{display:flex;gap:0;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}.hero-stat{flex:1;text-align:center}.hero-stat:not(:last-child){border-right:1px solid rgba(255,255,255,.08)}.hero-stat-val{font-size:16px;font-weight:800;color:#fff}.hero-stat-lbl{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.home-quick{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px 12px}.quick-card{border-radius:18px;padding:18px 16px;cursor:pointer;border:1px solid var(--border);transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column;gap:10px;background:var(--card);position:relative;overflow:hidden}.quick-card:active{transform:scale(.96)}.quick-card::after{content:'→';position:absolute;bottom:14px;right:16px;color:var(--text3);font-size:18px}
+.qc-icon{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center}.qc-title{font-size:15px;font-weight:700}.qc-sub{font-size:11px;color:var(--text2);line-height:1.4}.qc-biz .qc-icon{background:rgba(124,109,250,.15)}.qc-cas .qc-icon{background:rgba(240,98,146,.15)}.qc-scan .qc-icon{background:rgba(0,229,160,.15)}
+.recent-section{padding:0 16px}.recent-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px;display:flex;justify-content:space-between}.recent-title span{color:var(--accent);font-size:12px;cursor:pointer}
+.sms-banner{margin:0 16px 10px;background:rgba(0,229,160,.07);border:1px solid rgba(0,229,160,.2);border-radius:14px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px}.sms-banner svg{width:20px;height:20px;color:var(--green);flex-shrink:0;margin-top:1px}.sms-banner-text{font-size:12px;color:var(--text2);line-height:1.5}.sms-banner-text strong{color:var(--green)}
+.profile-hero{padding:24px 20px 16px;display:flex;align-items:center;gap:16px}.avatar-wrap{position:relative;cursor:pointer}.avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:28px;font-weight:800;color:#fff;border:2px solid var(--border2)}.avatar-edit{position:absolute;bottom:0;right:0;width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}.avatar-edit svg{width:11px;height:11px;color:#fff}
+.profile-name{font-family:var(--font-display);font-size:20px;font-weight:800}.profile-email{font-size:13px;color:var(--text2);margin-top:2px}.profile-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(124,109,250,.12);border:1px solid rgba(124,109,250,.25);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--accent);margin-top:6px;text-transform:uppercase;letter-spacing:.5px}
+.setting-group{margin:0 16px 12px}.setting-group-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:8px;padding-left:2px}.setting-item{background:var(--card);border:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s}
+.setting-item:first-child{border-radius:var(--radius-sm) var(--radius-sm) 0 0}.setting-item:last-child{border-radius:0 0 var(--radius-sm) var(--radius-sm)}.setting-item:only-child{border-radius:var(--radius-sm)}.setting-item+.setting-item{border-top:none}
+.setting-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}.setting-icon svg{width:16px;height:16px}.setting-body{flex:1}.setting-lbl{font-size:14px;font-weight:600}.setting-hint{font-size:11px;color:var(--text3);margin-top:2px}.setting-right{display:flex;align-items:center;gap:8px;color:var(--text3)}.setting-right svg{width:16px;height:16px}.setting-val{font-size:13px;color:var(--text2)}
+.tog{position:relative;width:46px;height:26px;flex-shrink:0}.tog input{opacity:0;width:0;height:0}.tog-sl{position:absolute;inset:0;background:var(--border2);border-radius:26px;cursor:pointer;transition:.3s}.tog-sl:before{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.4)}.tog input:checked+.tog-sl{background:var(--accent)}.tog input:checked+.tog-sl:before{transform:translateX(20px)}
+.dev-credit{text-align:center;padding:20px 0 10px;font-size:11px;color:var(--text3)}.dev-credit strong{color:var(--accent);font-weight:700}
+.chart-wrap{margin:0 16px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;overflow:hidden}.chart-title{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:14px}.bar-chart{display:flex;align-items:flex-end;gap:6px;height:80px}.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}.bar{width:100%;border-radius:6px 6px 0 0;background:linear-gradient(to top,var(--accent),rgba(124,109,250,.3));min-height:4px;transition:height .5s cubic-bezier(.34,1.1,.64,1)}.bar-lbl{font-size:9px;color:var(--text3);font-weight:600}
+.budget-ring-wrap{display:flex;align-items:center;gap:16px;padding:0 16px 12px}.budget-ring{position:relative;width:80px;height:80px;flex-shrink:0}.budget-ring svg{width:80px;height:80px;transform:rotate(-90deg)}.ring-bg{fill:none;stroke:var(--border2);stroke-width:7}.ring-fill{fill:none;stroke:var(--accent);stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.34,1.1,.64,1)}.ring-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800}
+.budget-info-title{font-size:13px;font-weight:700}.budget-info-sub{font-size:11px;color:var(--text2);margin-top:3px;line-height:1.4}
+.cat-food{background:rgba(255,152,0,.15);color:#ff9800}.cat-transport{background:rgba(66,165,245,.15);color:#42a5f5}.cat-shopping{background:rgba(240,98,146,.15);color:#f06292}.cat-entertainment{background:rgba(171,71,188,.15);color:#ab47bc}.cat-health{background:rgba(0,229,160,.15);color:#00e5a0}.cat-bills{background:rgba(255,201,71,.15);color:#ffc947}.cat-other{background:rgba(120,120,150,.15);color:#9ba3c2}.cat-business{background:rgba(124,109,250,.15);color:#7c6dfa}
+
+/* ══ RESPONSIVE ══ */
+@media(min-width:431px){
+  body{max-width:520px;box-shadow:0 0 60px rgba(0,0,0,.6)}
+  .tab-bar{max-width:520px}
+  .modal-box{max-width:520px}
+  .hero-amount{font-size:44px}
+  .home-quick{grid-template-columns:repeat(4,1fr)}
+  .qc-card{padding:16px}
+}
+@media(min-width:900px){
+  body{max-width:720px}
+  .tab-bar{max-width:720px}
+  .modal-box{max-width:560px}
+  .page-title{font-size:30px}
+  .stat-val{font-size:26px}
+  .hero-amount{font-size:52px}
+}
+@media(max-width:360px){
+  :root{--tab-h:60px}
+  body{font-size:14px}
+  .hero-amount{font-size:30px}
+  .stat-card{padding:11px}
+  .home-quick{gap:8px}
+  .quick-card{padding:14px 12px}
+  .page-hdr{padding:16px 16px 6px}
+  .stat-row{padding:0 12px 10px}
+  .inp-row{padding:0 12px 8px;flex-wrap:wrap}
+  .inp-row .inp-group{flex:1 1 100%}
+  .inp-row .inp-group[style*="max-width"]{max-width:none!important;flex:1 1 100%}
+  .btn-full{width:calc(100% - 24px);margin:0 12px 8px}
+  .list-item{margin:0 12px 8px}
+  .setting-group{margin:0 12px 10px}
+  .section-lbl{padding:0 12px 6px}
+  .chip-row{padding:0 12px 8px}
+  .budget-ring-wrap{padding:0 12px 10px}
+  .chart-wrap{margin:0 12px 10px}
+  .hero-card{margin:12px}
+  .home-quick{padding:0 12px 10px}
+  .sms-banner{margin:0 12px 8px}
+}
+@media(orientation:landscape) and (max-height:500px){
+  .screen{height:calc(100vh - 52px)}
+  :root{--tab-h:52px}
+  .home-top{padding:12px 16px 0}
+  .hero-card{padding:14px}
+  .hero-amount{font-size:26px}
+  .hero-row{margin-top:10px;padding-top:10px}
+  .home-quick{grid-template-columns:repeat(4,1fr)}
+  .scroll-pad{padding-bottom:60px}
+}
+</style>
+</head>
+<body>
+
+<div id="toast">✓ Done</div>
+
+<div class="modal-overlay" id="sms-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📩 Paste Debit Message</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6">Paste the SMS you received from your bank. EasyExpenso will auto-detect the amount, merchant &amp; category.</p>
+    <div class="inp-group" style="margin-bottom:12px"><label>Bank SMS</label><textarea id="sms-input" placeholder="e.g. INR 250.00 debited from A/c XX1234 on 13-Jun. Info: UPI/Swiggy. Avl Bal: 4532.10"></textarea></div>
+    <div id="sms-preview" style="display:none;background:var(--bg2);border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid var(--border2)">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;font-weight:700">Detected</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div id="sms-detected-name" style="font-size:16px;font-weight:700"></div><div id="sms-detected-cat" style="font-size:11px;color:var(--text2);margin-top:3px"></div></div>
+        <div id="sms-detected-amount" style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;color:var(--yellow)"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="parseSMS()" style="margin:0 0 8px">🔍 Detect from SMS</button>
+    <button class="btn btn-green btn-full" id="sms-confirm-btn" style="margin:0 0 8px;display:none" onclick="confirmSMS()">✓ Add to Casual</button>
+    <button class="btn btn-ghost btn-full" style="margin:0" onclick="closeModal('sms-modal')">Cancel</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="budget-modal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎯 Set Monthly Budget</div>
+    <div class="inp-row" style="padding:0 0 12px"><div class="inp-group"><label>Monthly Budget Limit</label><input type="number" id="budget-input" placeholder="e.g. 15000"/></div></div>
+    <button class="btn btn-primary btn-full" style="margin:0 0 8px" onclick="saveBudget()">Save Budget</button>
+    <button class="btn btn-ghost btn-full" style="margin:0" onclick="closeModal('budget-modal')">Cancel</button>
+  </div>
+</div>
+
+<div id="home" class="screen active">
+  <div class="home-top">
+    <div class="greeting">Good day 👋<strong id="home-name"></strong></div>
+    <div class="notif-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="notif-dot"></div></div>
+  </div>
+  <div class="hero-card">
+    <div class="hero-label">Total Spent This Month</div>
+    <div class="hero-amount" id="home-total">₹0.00</div>
+    <div class="hero-sub" id="home-date"></div>
+    <div class="hero-row">
+      <div class="hero-stat"><div class="hero-stat-val" id="home-biz-total">₹0</div><div class="hero-stat-lbl">Business</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="home-cas-total">₹0</div><div class="hero-stat-lbl">Casual</div></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="home-txn-count">0</div><div class="hero-stat-lbl">Transactions</div></div>
+    </div>
+  </div>
+  <div class="budget-ring-wrap" id="budget-ring-section">
+    <div class="budget-ring"><svg viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="36"/><circle class="ring-fill" id="ring-fill" cx="40" cy="40" r="36" stroke-dasharray="226" stroke-dashoffset="226"/></svg><div class="ring-center" id="ring-pct">0%</div></div>
+    <div class="budget-info">
+      <div class="budget-info-title" id="budget-title">No budget set</div>
+      <div class="budget-info-sub" id="budget-sub">Tap to set a monthly limit and track how you're spending.</div>
+      <div style="margin-top:8px"><button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;border-radius:8px" onclick="openModal('budget-modal')">Set Budget</button></div>
+    </div>
+  </div>
+  <div class="chart-wrap"><div class="chart-title">Spending This Week</div><div class="bar-chart" id="week-chart"></div></div>
+  <div class="home-quick">
+    <div class="quick-card qc-biz" onclick="goTab('business')"><div class="qc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c6dfa" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></div><div class="qc-title">Business</div><div class="qc-sub">Invoices &amp; monthly totals</div></div>
+    <div class="quick-card qc-cas" onclick="goTab('casual')"><div class="qc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f06292" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div class="qc-title">Casual</div><div class="qc-sub">Daily expense log</div></div>
+    <div class="quick-card qc-scan" onclick="openModal('sms-modal')"><div class="qc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="qc-title">Auto-Scan</div><div class="qc-sub">Paste bank SMS to auto-log</div></div>
+    <div class="quick-card" onclick="goTab('profile')" style="background:var(--card)"><div class="qc-icon" style="background:rgba(255,201,71,.12)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffc947" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></div><div class="qc-title">Profile</div><div class="qc-sub">Settings &amp; preferences</div></div>
+  </div>
+  <div class="scroll-pad"></div>
+</div>
+
+<div id="business" class="screen">
+  <div class="page-hdr"><div class="page-hdr-left"><div class="page-title">Business <span>Invoices</span></div><div class="page-sub" id="biz-month-sub"></div></div></div>
+  <div class="stat-row">
+    <div class="stat-card accent"><div class="stat-lbl">This Month</div><div class="stat-val accent" id="biz-monthly">₹0</div><div class="stat-delta" id="biz-month-lbl"></div></div>
+    <div class="stat-card green"><div class="stat-lbl">Invoices</div><div class="stat-val green" id="biz-count">0</div><div class="stat-delta">this month</div></div>
+    <div class="stat-card yellow"><div class="stat-lbl">Avg/Invoice</div><div class="stat-val yellow" id="biz-avg">₹0</div><div class="stat-delta">average</div></div>
+  </div>
+  <div class="inp-row"><div class="inp-group"><label>Invoice No.</label><input type="text" id="biz-no" placeholder="INV-001"/></div><div class="inp-group" style="max-width:110px"><label>Date</label><input type="date" id="biz-date"/></div></div>
+  <div class="inp-row"><div class="inp-group"><label>Description / Client</label><input type="text" id="biz-desc" placeholder="e.g. Tiwari & Sons — Electrical"/></div><div class="inp-group" style="max-width:120px"><label>Amount</label><input type="number" id="biz-amt" placeholder="0.00"/></div></div>
+  <button class="btn btn-primary btn-full" onclick="addInvoice()">+ Add Invoice</button>
+  <div class="section-lbl">Recent Invoices <span onclick="clearAllInvoices()">Clear All</span></div>
+  <div id="invoice-list"><div class="empty-state" id="biz-empty"><div class="emoji">🧾</div><p>No invoices yet.<br>Add your first one above.</p></div></div>
+  <div class="scroll-pad"></div>
+</div>
+
+<div id="casual" class="screen">
+  <div class="page-hdr"><div class="page-hdr-left"><div class="page-title">Casual <span>Expenses</span></div><div class="page-sub" id="cas-date-sub"></div></div><div class="icon-btn" onclick="openModal('sms-modal')" title="Auto-scan SMS"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div></div>
+  <div class="stat-row">
+    <div class="stat-card yellow"><div class="stat-lbl">Today</div><div class="stat-val yellow" id="cas-today">₹0</div><div class="stat-delta">total spent</div></div>
+    <div class="stat-card green"><div class="stat-lbl">Entries</div><div class="stat-val green" id="cas-count">0</div><div class="stat-delta">today</div></div>
+    <div class="stat-card blue"><div class="stat-lbl">This Month</div><div class="stat-val blue" id="cas-month">₹0</div><div class="stat-delta">casual total</div></div>
+  </div>
+  <div class="sms-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="sms-banner-text">Got a bank SMS? Tap <strong>Auto-Scan</strong> (top-right) to instantly log debit transactions without typing.</div></div>
+  <div class="inp-row"><div class="inp-group"><label>What did you spend on?</label><input type="text" id="cas-name" placeholder="e.g. Lunch, Auto, Snacks…"/></div><div class="inp-group" style="max-width:120px"><label>Amount</label><input type="number" id="cas-amt" placeholder="0"/></div></div>
+  <div class="section-lbl" style="padding-bottom:4px">Category</div>
+  <div class="chip-row" id="cat-chips"></div>
+  <button class="btn btn-primary btn-full" onclick="addExpense()">+ Add Expense</button>
+  <div class="section-lbl">Today's Log <span onclick="clearTodayExpenses()">Clear Today</span></div>
+  <div id="expense-list"><div class="empty-state" id="cas-empty"><div class="emoji">☕</div><p>Nothing logged yet.<br>Add your first expense above!</p></div></div>
+  <div class="scroll-pad"></div>
+</div>
+
+<div id="profile" class="screen">
+  <div class="profile-hero">
+    <div class="avatar-wrap"><div class="avatar" id="av-init">D</div><div class="avatar-edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div></div>
+    <div class="profile-info"><div class="profile-name" id="pf-name-disp"></div><div class="profile-email" id="pf-email-disp">your@email.com</div><div class="profile-badge">⭐ Premium User</div></div>
+  </div>
+  <div class="setting-group">
+    <div class="setting-group-title">Personal Details</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <div class="inp-group"><label>Full Name</label><input type="text" id="p-name" value="" oninput="updateProfile()"/></div>
+      <div class="inp-group"><label>Email</label><input type="email" id="p-email" placeholder="your@email.com" oninput="updateProfile()"/></div>
+      <div class="inp-group"><label>Phone</label><input type="tel" id="p-phone" placeholder="+91 XXXXX XXXXX"/></div>
+    </div>
+  </div>
+  <div class="setting-group">
+    <div class="setting-group-title">Business Details</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <div class="inp-group"><label>Business Name</label><input type="text" id="p-biz" placeholder="e.g. Tiwari & Sons"/></div>
+      <div class="inp-group"><label>GST / Tax No.</label><input type="text" id="p-gst" placeholder="Optional"/></div>
+      <div class="inp-group"><label>Address</label><input type="text" id="p-addr" placeholder="Mumbai, Maharashtra"/></div>
+    </div>
+  </div>
+  <div class="setting-group">
+    <div class="setting-group-title">Currency &amp; Display</div>
+    <div class="setting-item">
+      <div class="setting-icon" style="background:rgba(255,201,71,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#ffc947" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div class="setting-body"><div class="setting-lbl">Currency</div><div class="setting-hint">Choose your preferred currency</div></div>
+      <div class="setting-right"><select id="currency-sel" onchange="setCurrency()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:5px 8px;font-size:13px"><option value="₹|INR">₹ INR</option><option value="$|USD">$ USD</option><option value="€|EUR">€ EUR</option><option value="£|GBP">£ GBP</option><option value="¥|JPY">¥ JPY</option><option value="د.إ|AED">د.إ AED</option><option value="৳|BDT">৳ BDT</option><option value="Rp|IDR">Rp IDR</option></select></div>
+    </div>
+    <div class="setting-item">
+      <div class="setting-icon" style="background:rgba(124,109,250,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#7c6dfa" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 19.07a10 10 0 0 1 0-14.14"/></svg></div>
+      <div class="setting-body"><div class="setting-lbl">Monthly Budget</div><div class="setting-hint" id="budget-hint-setting">Not set</div></div>
+      <div class="setting-right"><button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;border-radius:8px" onclick="openModal('budget-modal')">Set</button></div>
+    </div>
+  </div>
+  <div class="setting-group">
+    <div class="setting-group-title">Notifications</div>
+    <div class="setting-item"><div class="setting-icon" style="background:rgba(0,229,160,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><div class="setting-body"><div class="setting-lbl">Daily Reminder</div><div class="setting-hint">Remind me to log expenses at night</div></div><label class="tog"><input type="checkbox" checked/><span class="tog-sl"></span></label></div>
+    <div class="setting-item"><div class="setting-icon" style="background:rgba(255,92,114,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5c72" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="setting-body"><div class="setting-lbl">Budget Alert</div><div class="setting-hint">Alert when 80% of budget used</div></div><label class="tog"><input type="checkbox" checked/><span class="tog-sl"></span></label></div>
+    <div class="setting-item"><div class="setting-icon" style="background:rgba(66,165,245,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#42a5f5" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="setting-body"><div class="setting-lbl">Weekly Summary</div><div class="setting-hint">Get a weekly spending summary</div></div><label class="tog"><input type="checkbox"/><span class="tog-sl"></span></label></div>
+  </div>
+  <div class="setting-group">
+    <div class="setting-group-title">Appearance</div>
+    <div class="setting-item"><div class="setting-icon" style="background:rgba(171,71,188,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#ab47bc" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div><div class="setting-body"><div class="setting-lbl">Dark Mode</div><div class="setting-hint">Currently using dark theme</div></div><label class="tog"><input type="checkbox" checked/><span class="tog-sl"></span></label></div>
+    <div class="setting-item"><div class="setting-icon" style="background:rgba(255,152,0,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#ff9800" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg></div><div class="setting-body"><div class="setting-lbl">Compact View</div><div class="setting-hint">Show more items per screen</div></div><label class="tog"><input type="checkbox"/><span class="tog-sl"></span></label></div>
+    <div class="setting-item"><div class="setting-icon" style="background:rgba(0,229,160,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg></div><div class="setting-body"><div class="setting-lbl">Haptic Feedback</div><div class="setting-hint">Vibrate on actions</div></div><label class="tog"><input type="checkbox" checked/><span class="tog-sl"></span></label></div>
+  </div>
+  <div class="setting-group">
+    <div class="setting-group-title">Data &amp; Privacy</div>
+    <div class="setting-item" onclick="exportData()"><div class="setting-icon" style="background:rgba(66,165,245,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#42a5f5" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><div class="setting-body"><div class="setting-lbl">Export Data</div><div class="setting-hint">Download all expenses as JSON</div></div><div class="setting-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+    <div class="setting-item" onclick="if(confirm('Clear ALL data? This cannot be undone.'))clearAll()"><div class="setting-icon" style="background:rgba(255,92,114,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5c72" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div><div class="setting-body"><div class="setting-lbl">Clear All Data</div><div class="setting-hint" style="color:var(--red)">Permanently delete everything</div></div><div class="setting-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+    <div class="setting-item"><div class="setting-icon" style="background:rgba(0,229,160,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="setting-body"><div class="setting-lbl">Passcode Lock</div><div class="setting-hint">Lock app with a PIN</div></div><label class="tog"><input type="checkbox"/><span class="tog-sl"></span></label></div>
+  </div>
+  <div class="setting-group">
+    <div class="setting-group-title">About</div>
+    <div class="setting-item"><div class="setting-icon" style="background:rgba(124,109,250,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#7c6dfa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="setting-body"><div class="setting-lbl">EasyExpenso</div><div class="setting-hint">Version 2.0.0 · Built with ❤️</div></div><div class="setting-right"><span class="setting-val">v2.0</span></div></div>
+    <div class="setting-item"><div class="setting-icon" style="background:rgba(255,201,71,.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#ffc947" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="setting-body"><div class="setting-lbl">Rate the App</div><div class="setting-hint">Your feedback means a lot!</div></div><div class="setting-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+  </div>
+  <div class="dev-credit">Designed &amp; Developed by <strong>Dtech</strong><br><span style="font-size:10px;color:var(--text3)">© 2025 EasyExpenso · All rights reserved</span></div>
+  <div class="scroll-pad"></div>
+</div>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" id="tab-home" onclick="goTab('home')"><div class="tab-indicator"></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</button>
+  <button class="tab-btn" id="tab-business" onclick="goTab('business')"><div class="tab-indicator"></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>Business</button>
+  <button class="tab-btn" id="tab-casual" onclick="goTab('casual')"><div class="tab-indicator"></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Casual</button>
+  <button class="tab-btn" id="tab-profile" onclick="goTab('profile')"><div class="tab-indicator"></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
+</nav>
+
+<script>
+/* ══ STATE ══ */
+let C={sym:'₹',code:'INR'};
+let budget=parseFloat(localStorage.getItem('ee_budget')||'0');
+let invoices=[],expenses=[],smsDetected=null,selCat='Food';
+const API_BASE='';
+const CATS=[{id:'Food',icon:'🍔',cls:'cat-food'},{id:'Transport',icon:'🚗',cls:'cat-transport'},{id:'Shopping',icon:'🛍️',cls:'cat-shopping'},{id:'Entertainment',icon:'🎮',cls:'cat-entertainment'},{id:'Health',icon:'💊',cls:'cat-health'},{id:'Bills',icon:'💡',cls:'cat-bills'},{id:'Other',icon:'📦',cls:'cat-other'}];
+const CAT_KEYWORDS={food:['swiggy','zomato','domino','pizza','burger','kfc','mcdonalds','food','eat','restaurant','cafe','coffee','starbucks','chai','biryani','lunch','dinner','breakfast','snack','bakery'],transport:['uber','ola','rapido','auto','petrol','fuel','diesel','metro','bus','train','irctc','redbus','cab','taxi','parking','toll','namma'],shopping:['amazon','flipkart','myntra','ajio','meesho','mall','store','shop','mart','reliance','dmart','big','clothing','fashion','jiomart'],entertainment:['netflix','hotstar','prime','spotify','youtube','movie','cinema','pvr','inox','game','gaming'],health:['pharmacy','medical','hospital','clinic','doctor','medicine','apollo','1mg','mediplus','diagnostic'],bills:['electricity','bill','recharge','airtel','jio','bsnl','vi','idea','broadband','wifi','water','gas','lpg','indane','utility']};
+
+/* ══ API ══ */
+async function api(path,opts){
+  try{const r=await fetch(API_BASE+path,opts);if(!r.ok)throw 0;return await r.json();}catch{return null;}
+}
+async function loadData(){
+  const [inv,exp,bd]=await Promise.all([api('/api/invoices'),api('/api/expenses'),api('/api/budget')]);
+  if(inv)invoices=inv; else invoices=JSON.parse(localStorage.getItem('ee_inv')||'[]');
+  if(exp)expenses=exp; else expenses=JSON.parse(localStorage.getItem('ee_exp')||'[]');
+  if(bd)budget=bd.budget; else budget=parseFloat(localStorage.getItem('ee_budget')||'0');
+  renderHome();renderBiz();renderCas();
+}
+
+/* ══ TOAST ══ */
+let toastTimer;
+function toast(msg,icon='✓'){const t=document.getElementById('toast');t.innerHTML=icon+' '+msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);}
+
+/* ══ MODALS & NAV ══ */
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function goTab(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='business')renderBiz();if(id==='casual')renderCas();if(id==='home')renderHome();
+}
+
+/* ══ CURRENCY ══ */
+function setCurrency(){const v=document.getElementById('currency-sel').value.split('|');C={sym:v[0],code:v[1]};renderBiz();renderCas();renderHome();toast('Currency set to '+C.code);}
+function fmt(n){const v=parseFloat(n)||0;return C.sym+v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtShort(n){const v=parseFloat(n)||0;if(v>=100000)return C.sym+(v/100000).toFixed(1)+'L';if(v>=1000)return C.sym+(v/1000).toFixed(1)+'K';return C.sym+Math.round(v);}
+
+/* ══ CATEGORY ══ */
+function detectCat(text){const t=text.toLowerCase();for(const[cat,kws]of Object.entries(CAT_KEYWORDS)){if(kws.some(k=>t.includes(k)))return cat.charAt(0).toUpperCase()+cat.slice(1);}return'Other';}
+function catMeta(id){return CATS.find(c=>c.id===id)||CATS[CATS.length-1];}
+function renderCatChips(){document.getElementById('cat-chips').innerHTML=CATS.map(c=>`<div class="chip${c.id===selCat?' selected':''}" onclick="selCat='${c.id}';renderCatChips()">${c.icon} ${c.id}</div>`).join('');}
+
+/* ══ SMS PARSER ══ */
+function parseSMS(){
+  const sms=document.getElementById('sms-input').value.trim();
+  if(!sms){toast('Paste a bank SMS first','⚠️');return;}
+  const amtMatch=sms.match(/(?:INR|Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i)||sms.match(/([\d,]+(?:\.\d{1,2})?)\s*(?:INR|Rs\.?|₹)/i)||sms.match(/debited.*?([\d,]+\.\d{2})/i);
+  if(!amtMatch){toast('Could not detect amount in SMS','❌');return;}
+  const amount=parseFloat(amtMatch[1].replace(/,/g,''));
+  let merchant='Payment';
+  const infoMatch=sms.match(/(?:Info|UPI|To|at|VPA|Merchant)[:\/\s]+([A-Za-z0-9@._\-&\s]{3,30})/i);
+  if(infoMatch)merchant=infoMatch[1].replace(/[^A-Za-z0-9\s&]/g,'').trim().split(' ').slice(0,3).join(' ');
+  const cat=detectCat(sms+' '+merchant);
+  smsDetected={name:merchant,amount,cat};
+  document.getElementById('sms-detected-name').textContent=merchant;
+  document.getElementById('sms-detected-cat').textContent=catMeta(cat).icon+' '+cat;
+  document.getElementById('sms-detected-amount').textContent=fmt(amount);
+  document.getElementById('sms-preview').style.display='block';
+  document.getElementById('sms-confirm-btn').style.display='flex';
+  toast('Amount detected: '+fmt(amount),'🎯');
+}
+function confirmSMS(){
+  if(!smsDetected)return;
+  const now=new Date();
+  const e={name:smsDetected.name,amount:smsDetected.amount,cat:smsDetected.cat,time:now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),date:now.toDateString(),auto:1};
+  expenses.unshift({id:Date.now(),...e});save();
+  api('/api/expenses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(e)});
+  closeModal('sms-modal');document.getElementById('sms-input').value='';
+  document.getElementById('sms-preview').style.display='none';document.getElementById('sms-confirm-btn').style.display='none';
+  smsDetected=null;goTab('casual');toast('Auto-logged from SMS! ','📩');
+}
+
+/* ══ BUSINESS ══ */
+function addInvoice(){
+  const no=document.getElementById('biz-no').value.trim(),date=document.getElementById('biz-date').value;
+  const desc=document.getElementById('biz-desc').value.trim(),amt=parseFloat(document.getElementById('biz-amt').value);
+  if(!no||!date||isNaN(amt)||amt<=0){toast('Fill in Invoice No., Date & Amount','⚠️');return;}
+  const inv={no,date,desc,amount:amt};
+  invoices.unshift({id:Date.now(),...inv});save();
+  api('/api/invoices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(inv)});
+  document.getElementById('biz-no').value='';document.getElementById('biz-desc').value='';document.getElementById('biz-amt').value='';
+  renderBiz();toast('Invoice '+no+' added!','🧾');
+}
+function deleteInvoice(id){
+  invoices=invoices.filter(i=>i.id!==id);save();
+  api('/api/invoices/'+id,{method:'DELETE'});
+  renderBiz();
+}
+function clearAllInvoices(){if(confirm('Clear all invoices?')){const ids=invoices.map(i=>i.id);invoices=[];
+  ids.forEach(id=>api('/api/invoices/'+id,{method:'DELETE'}));
+  save();renderBiz();}}
+function renderBiz(){
+  const now=new Date();
+  const ml=now.toLocaleString('default',{month:'long',year:'numeric'});
+  document.getElementById('biz-month-sub').textContent=ml;
+  const thisM=invoices.filter(i=>{const d=new Date(i.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  const total=thisM.reduce((s,i)=>s+i.amount,0),avg=thisM.length?total/thisM.length:0;
+  document.getElementById('biz-monthly').textContent=fmtShort(total);
+  document.getElementById('biz-month-lbl').textContent=ml;
+  document.getElementById('biz-count').textContent=thisM.length;
+  document.getElementById('biz-avg').textContent=fmtShort(avg);
+  const el=document.getElementById('invoice-list');
+  document.getElementById('biz-empty').style.display=invoices.length?'none':'block';
+  el.innerHTML=(invoices.length?'':document.getElementById('biz-empty').outerHTML)+invoices.map(inv=>{
+    const d=new Date(inv.date),imp=d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    return `<div class="list-item"><div class="item-icon cat-business">🧾</div><div class="item-body"><div class="item-title">${inv.no}${inv.desc?' — '+inv.desc:''}</div><div class="item-sub">${d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div></div><div class="item-right"><div class="item-amount" style="color:var(--green)">${fmt(inv.amount)}</div>${imp?'<span class="item-badge" style="background:rgba(0,229,160,.12);color:var(--green)">This month</span>':''}</div><button class="del-btn" onclick="deleteInvoice(${inv.id})">✕</button></div>`;
+  }).join('');
+}
+
+/* ══ CASUAL ══ */
+function addExpense(){
+  const name=document.getElementById('cas-name').value.trim(),amt=parseFloat(document.getElementById('cas-amt').value);
+  if(!name||isNaN(amt)||amt<=0){toast('Enter name and amount','⚠️');return;}
+  const now=new Date();
+  const e={name,amount:amt,cat:selCat,time:now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),date:now.toDateString(),auto:0};
+  expenses.unshift({id:Date.now(),...e});save();
+  api('/api/expenses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(e)});
+  document.getElementById('cas-name').value='';document.getElementById('cas-amt').value='';
+  renderCas();toast(name+' logged!','💸');
+}
+function deleteExpense(id){expenses=expenses.filter(e=>e.id!==id);save();api('/api/expenses/'+id,{method:'DELETE'});renderCas();}
+function clearTodayExpenses(){
+  if(confirm("Clear today's log?")){
+    const t=new Date().toDateString();
+    const ids=expenses.filter(e=>e.date===t).map(e=>e.id);
+    expenses=expenses.filter(e=>e.date!==t);save();
+    ids.forEach(id=>api('/api/expenses/'+id,{method:'DELETE'}));
+    renderCas();
+  }
+}
+function renderCas(){
+  const today=new Date().toDateString(),now=new Date();
+  document.getElementById('cas-date-sub').textContent=now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  const todayE=expenses.filter(e=>e.date===today);
+  const monthE=expenses.filter(e=>{const d=new Date(e.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  const todayT=todayE.reduce((s,e)=>s+e.amount,0),monthT=monthE.reduce((s,e)=>s+e.amount,0);
+  document.getElementById('cas-today').textContent=fmtShort(todayT);
+  document.getElementById('cas-count').textContent=todayE.length;
+  document.getElementById('cas-month').textContent=fmtShort(monthT);
+  renderCatChips();
+  const el=document.getElementById('expense-list');
+  if(todayE.length===0){el.innerHTML=document.getElementById('cas-empty').outerHTML;document.getElementById('cas-empty').style.display='block';return;}
+  el.innerHTML=todayE.map(e=>{
+    const cm=catMeta(e.cat||'Other');
+    return `<div class="list-item"><div class="item-icon ${cm.cls}">${cm.icon}</div><div class="item-body"><div class="item-title">${e.name}${e.auto?' <span style="font-size:9px;color:var(--green)">📩 SMS</span>':''}</div><div class="item-sub">${e.time}${e.cat?' · '+e.cat:''}</div></div><div class="item-right"><div class="item-amount" style="color:var(--yellow)">${fmt(e.amount)}</div></div><button class="del-btn" onclick="deleteExpense(${e.id})">✕</button></div>`;
+  }).join('');
+}
+
+/* ══ HOME ══ */
+function renderHome(){
+  const now=new Date();
+  document.getElementById('home-date').textContent=now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('home-name').textContent=document.getElementById('p-name').value||'';
+  const monthInv=invoices.filter(i=>{const d=new Date(i.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  const monthExp=expenses.filter(e=>{const d=new Date(e.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  const bizT=monthInv.reduce((s,i)=>s+i.amount,0),casT=monthExp.reduce((s,e)=>s+e.amount,0),total=bizT+casT;
+  document.getElementById('home-total').textContent=fmt(total);
+  document.getElementById('home-biz-total').textContent=fmtShort(bizT);
+  document.getElementById('home-cas-total').textContent=fmtShort(casT);
+  document.getElementById('home-txn-count').textContent=monthInv.length+monthExp.length;
+  if(budget>0){
+    const pct=Math.min(total/budget,1),circ=226;
+    document.getElementById('ring-fill').style.strokeDashoffset=circ-(circ*pct);
+    document.getElementById('ring-fill').style.stroke=pct>0.8?'var(--red)':pct>0.6?'var(--yellow)':'var(--accent)';
+    document.getElementById('ring-pct').textContent=Math.round(pct*100)+'%';
+    document.getElementById('budget-title').textContent=fmt(total)+' of '+fmtShort(budget);
+    document.getElementById('budget-sub').textContent=pct>=1?'⚠️ Budget exceeded! Consider reviewing expenses.':fmt(budget-total)+' remaining this month';
+    document.getElementById('budget-hint-setting').textContent=fmtShort(budget)+' / month';
+  }
+  const days=['S','M','T','W','T','F','S'],weekData=Array(7).fill(0);
+  for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-6+i);weekData[i]=expenses.filter(e=>e.date===d.toDateString()).reduce((s,e)=>s+e.amount,0);}
+  const mx=Math.max(...weekData,1),todayDow=now.getDay(),startDow=(todayDow-6+7)%7;
+  document.getElementById('week-chart').innerHTML=weekData.map((v,i)=>{
+    const h=Math.max((v/mx)*68,v>0?8:2),isToday=i===6;
+    return `<div class="bar-col"><div class="bar" style="height:${h}px;${isToday?'background:linear-gradient(to top,var(--accent2),rgba(240,98,146,.3))':''}"></div><div class="bar-lbl">${days[(startDow+i)%7]}</div></div>`;
+  }).join('');
+}
+
+/* ══ BUDGET ══ */
+function saveBudget(){
+  const v=parseFloat(document.getElementById('budget-input').value);
+  if(isNaN(v)||v<=0){toast('Enter a valid budget amount','⚠️');return;}
+  budget=v;localStorage.setItem('ee_budget',v);
+  api('/api/budget',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({budget:v})});
+  closeModal('budget-modal');renderHome();toast('Budget set to '+fmt(v),'🎯');
+}
+
+/* ══ PROFILE ══ */
+function updateProfile(){
+  const n=document.getElementById('p-name').value||'You',e=document.getElementById('p-email').value||'your@email.com';
+  document.getElementById('pf-name-disp').textContent=n;
+  document.getElementById('pf-email-disp').textContent=e;
+  document.getElementById('av-init').textContent=n.charAt(0).toUpperCase();
+  document.getElementById('home-name').textContent=n;
+}
+
+/* ══ EXPORT & CLEAR ══ */
+function exportData(){
+  const data={invoices,expenses,exportedAt:new Date().toISOString(),currency:C};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download='EasyExpenso_backup.json';a.click();
+  toast('Data exported!','📥');
+}
+function clearAll(){invoices=[];expenses=[];budget=0;localStorage.clear();save();renderHome();renderBiz();renderCas();toast('All data cleared','🗑');}
+
+/* ══ SAVE (local fallback) ══ */
+function save(){localStorage.setItem('ee_inv',JSON.stringify(invoices));localStorage.setItem('ee_exp',JSON.stringify(expenses));}
+
+/* ══ INIT ══ */
+document.getElementById('biz-date').valueAsDate=new Date();
+renderCatChips();renderHome();renderBiz();renderCas();
+loadData();
+</script>
+</body>
+</html>
